@@ -31,8 +31,8 @@ chrome.tabs.onUpdated.addListener (tabId, changeInfo, tab) ->
   console.log 'onUpdated ' + tabId
   console.log changeInfo
 
-  TabInfo.db({url: tab.url}).remove()
-  TabInfo.db({tab: tabId}).remove()
+  TabInfo.db({url: tab.url}).remove(false)
+  TabInfo.db({tab: tabId}).remove(false)
   TabInfo.db.insert({tab: tabId, url: tab.url, title: tab.title, closed: false})
 
   contentInfo = ContentInfo.db({url: tab.url}).first()

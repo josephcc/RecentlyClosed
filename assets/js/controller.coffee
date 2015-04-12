@@ -1,7 +1,9 @@
-
-width = 1280
-height = 800
-color = d3.scale.category20()
+w = window
+d = document
+e = d.documentElement
+g = d.getElementsByTagName('body')[0]
+width = w.innerWidth || e.clientWidth || g.clientWidth
+height = w.innerHeight|| e.clientHeight|| g.clientHeight
 
 dot = (v1, v2) ->
   v = _.map _.zip(v1, v2), (xy) -> xy[0] * xy[1]
@@ -77,7 +79,6 @@ render = () ->
             window.open(d.url, '_blank')
           else
             chrome.tabs.get(d.tab, (tab) ->
-              console.log tab
               chrome.windows.update(tab.windowId, {focused: true})
               chrome.tabs.update(d.tab, {selected: true})
             )
@@ -149,7 +150,19 @@ render = () ->
      tick()
   )
 
-
-TabInfo.updateFunction(render)
-ContentInfo.updateFunction(render)
+chrome.tabs.query {windowType: 'normal'}, (tabs) ->
+  openedUrls = []
+  for tab in tabs
+    openedUrls.push tab.url
+    TabInfo.db({url: tab.url}).update({closed: false})
+  console.log 'openedUrls'
+  console.log openedUrls
+  opened = TabInfo.db({closed: false}).get()
+  console.log 'openedtabs'
+  console.log opened
+  _.each opened, (info) ->
+    if not _.contains openedUrls, info.url
+      TabInfo.db(info).update({closed: true, time: Date.now()})
+  TabInfo.updateFunction(render)
+  #ContentInfo.updateFunction(render)
 

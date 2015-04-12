@@ -24,7 +24,7 @@ window.TabInfo = (() ->
       spillCount = size - DB_SIZE
       console.log 'spilling ' + spillCount + ' records'
       old = TabInfo.db().order('time asec').limit(spillCount).get()
-      TabInfo.db(old).remove()
+      TabInfo.db(old).remove(false)
     chrome.storage.local.set {'tabs': {db: _this, updateId: updateID}}
 
   settings =
@@ -82,7 +82,7 @@ window.ContentInfo = (() ->
       spillCount = size - DB_SIZE
       console.log 'spilling ' + spillCount + ' records'
       old = ContentInfo.db().order('time asec').limit(spillCount).get()
-      ContentInfo.db(old).remove()
+      ContentInfo.db(old).remove(false)
     chrome.storage.local.set {'contents': {db: _this, updateId: updateID}}
 
   settings =
