@@ -7,10 +7,9 @@
   "permissions": [
     "tabs",
     "activeTab",
-    "storage",
-    "unlimitedStorage",
-    "webNavigation",
-	"sessions"
+	"storage",
+	"http://*/",
+	"https://*/"
   ],
   "background": {
     "page": "dist/html/background.html",

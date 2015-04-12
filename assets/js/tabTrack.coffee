@@ -1,89 +1,54 @@
 
-console.log 'start'
-takeSnapshot = (action) ->
-  snapshotId = generateUUID()
-  time = Date.now()
-  chrome.tabs.query {windowType: 'normal'}, (tabs) ->
-    console.log '========== BEGIN SNAPSHOT =========='
-    console.log 'track - ' + action
-    saveTabs = []
-    for tab in tabs
-      tab.type = 'tab'
-      tab.snapshotAction = action
-      tab.domain = URI(tab.url).domain()
-      tab.urlHash = CryptoJS.MD5(tab.url).toString(CryptoJS.enc.Base64)
-      tab.domainHash = CryptoJS.MD5(tab.domain).toString(CryptoJS.enc.Base64)
-      tab.snapshotId = snapshotId
-      tab.time = time
+getContentAndTokenize = (tabId, tab, contentInfo) ->
+  if tab.url.indexOf('http') != 0
+    return
 
-      delete tab.width
-      delete tab.height
-      delete tab.selected
-      delete tab.highlighted
-      delete tab.incognito
-      delete tab.title
-
-      saveTabs.push tab
-
-    compare = (x, y) ->
-      if (x == y)
-        return 0
-      return x > y ? 1 : -1;
-    saveTabs.sort (x, y) ->
-      if x.windowId == y.windowId
-        return compare x.index, y.index
-      return compare x.windowId, y.windowId
-    globalIndex = 0
-    for tab in saveTabs
-      tab.globalIndex = globalIndex++
-    console.log saveTabs
-
-    TabInfo.db.insert(saveTabs)
-    console.log saveTabs
-    console.log '========== END   SNAPSHOT =========='
-
-trackFocus = (action, windowId, tabId) ->
-  console.log 'activated - ' + windowId + ':' + tabId
-  data = {type: 'focus', windowId: windowId, tabId: tabId, action: action, time: Date.now()}
-  TabInfo.db.insert(data)
-
-trackReplace = (removedTabId, addedTabId) ->
-  console.log 'replaced - ' + addedTabId + ':' + removedTabId
-#  data = {type: 'replace', from: removedTabId, to: addedTabId, time: Date.now()}
-#  TabInfo.db.insert(data)
+  console.log "TOK:"
+  console.log tab.url
+  chrome.tabs.executeScript tabId, {code: 'window.document.documentElement.innerHTML'}, (results) ->
+    html = results[0]
+    if html? and html.length > 10
+      $.ajax(
+        type: 'POST',
+        url: 'http://104.131.7.171/lda',
+        data: { 'data': JSON.stringify( {'html': html} ) }
+      ).success( (results) ->
+        console.log 'lda'
+        results = JSON.parse results
+        vector = results['vector']
+        content = {title: tab.title, url: tab.url, vector: results['vector'], topics: results['topics'], topic_vector: results['topic_vector'], size: results['size']}
+        ContentInfo.db.insert(content)
+      ).fail (a, t, e) ->
+        console.log 'fail tokenize'
+        console.log t
 
 chrome.tabs.onUpdated.addListener (tabId, changeInfo, tab) ->
-  if not changeInfo.status?
-    console.log changeInfo
+  if changeInfo.status != 'complete'
     return
-  # TODO: google doc pages will never finish loading
-  if not changeInfo.url? and tab.url.match(/https:\/\/docs.google.com\/.*\/edit.*/)?
+  if tab.url.indexOf('http') != 0
     return
 
-  takeSnapshot('updated:' + changeInfo.status)
+  console.log 'onUpdated ' + tabId
+  console.log changeInfo
 
-chrome.tabs.onAttached.addListener (tabId, attachInfo) ->
-  takeSnapshot('attached:' + attachInfo.newWindowId + ':' + attachInfo.newPosition)
+  tabInfo = TabInfo.db({url: tab.url}).first()
+  if tabInfo
+	  TabInfo.db(tabInfo).update({tab: tabId, title: tab.title, closed: false})
+  else
+	  TabInfo.db.insert({tab: tabId, url: tab.url, title: tab.title, closed: false})
 
-chrome.tabs.onMoved.addListener (tabId, moveInfo) ->
-  takeSnapshot('moved:' + moveInfo.windowId + ':' + moveInfo.fromIndex + ':' + moveInfo.toIndex)
+  contentInfo = ContentInfo.db({url: tab.url}).first()
+  if not contentInfo
+    getContentAndTokenize(tabId, tab, contentInfo)
 
 chrome.tabs.onRemoved.addListener (tabId, removeInfo) ->
-  takeSnapshot('removed:' + removeInfo.windowId + ':' + removeInfo.isWindowClosing)
 
-chrome.tabs.onActivated.addListener (activeInfo) ->
-  trackFocus('tabChange', activeInfo.windowId, activeInfo.tabId)
+  console.log 'onRemoved ' + tabId
+  console.log removeInfo
 
-chrome.windows.onFocusChanged.addListener (windowId) ->
-    chrome.tabs.query {active: true, windowId: windowId, currentWindow: true}, (tabs) ->
-      if tabs.length > 0
-        tab = tabs[0]
-        trackFocus('windowChange', windowId, tab.id)
+  tabInfo = TabInfo.db({tab: tabId}).order("date desc").first()
+  if tabInfo
+    TabInfo.db(tabInfo).update {closed: true}
+  else
+    console.log 'Tab closed before finished loading: ' + tabId
 
-chrome.tabs.onReplaced.addListener (addedTabId, removedTabId) ->
-  trackReplace(removedTabId, addedTabId)
-
-chrome.webNavigation.onCreatedNavigationTarget.addListener (details) ->
-  console.log 'nav: ' + details.sourceTabId + ' -> ' + details.tabId
-  data = {type: 'nav', from: details.sourceTabId, to: details.tabId, time: Date.now()}
-  TabInfo.db.insert(data)
