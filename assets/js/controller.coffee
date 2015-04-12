@@ -25,9 +25,12 @@ stack = (v1, v2) ->
 force = d3.layout.force()
     .size([width, height])
     .charge(-120)
-    .linkDistance (l) -> (20+15) + (Math.pow(1.0 - l.value, 2) * 100)
+    .linkDistance (l) -> (20*3) + (Math.pow(1.0 - l.value, 2) * 300)
 
+graph = {nodes: [], links: []}
 render = () ->
+  _.each graph.nodes, (node) ->
+    TabInfo.db({url: node.url}).update({px: node.px, py: node.py, x: node.x, y: node.y}, false)
   $('svg').remove()
   svg = d3.select('body').append('svg')
       .attr('width', width)
@@ -61,15 +64,7 @@ render = () ->
         .data(graph.nodes)
         .enter().append('circle')
         .attr('class', 'node')
-        .attr('r', (d) ->
-          if d.closed
-            factor = 5
-            age = (now - d.time)/1000/60/factor
-            age = Math.max(1, age)
-            15/age
-          else
-            20
-        )
+        .attr('r', nodeForR)
         .style('fill', (d) ->
           if d.closed
             'LightBlue'
@@ -77,9 +72,25 @@ render = () ->
             'RoyalBlue'
         )
         .call(force.drag)
-
   node.append('title')
-      .text((d) -> d.title)
+      .text((d) -> d.url)
+
+  text = svg.selectAll("text.label")
+  text = text.data(graph.nodes)
+  text.enter().append("text")
+        .attr("class", "label")
+        .attr("fill", 'darkgray')
+        .text((d) -> d.title)
+
+
+  nodeForR = (d) ->
+    if d.closed
+      factor = 5
+      age = (now - d.time)/1000/60/factor
+      age = Math.max(1, age)
+      15/age
+    else
+      20
 
   force.on('tick', () ->
     link.attr('x1', (d) -> d.source.x)
@@ -89,15 +100,12 @@ render = () ->
 
     node.attr('cx', (d) -> d.x)
         .attr('cy', (d) -> d.y)
-        .attr('r', (d) ->
-          if d.closed
-            factor = 5
-            age = (now - d.time)/1000/60/factor
-            age = Math.max(1, age)
-            15/age
-          else
-            20
-        )
+        .attr('r', nodeForR)
+
+    text.attr("transform", (d) ->
+      r = nodeForR(d)
+      "translate(" + (d.x + r + 2) + "," + (d.y + 3) + ")"
+    )
   )
 
 
