@@ -46,7 +46,7 @@ chrome.tabs.onRemoved.addListener (tabId, removeInfo) ->
 
   tabInfo = TabInfo.db({tab: tabId}).order("date desc").first()
   if tabInfo
-    TabInfo.db(tabInfo).update {closed: true}
+    TabInfo.db(tabInfo).update {closed: true, time: Date.now()}
   else
     console.log 'Tab closed before finished loading: ' + tabId
 

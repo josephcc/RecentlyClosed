@@ -25,14 +25,15 @@ stack = (v1, v2) ->
 force = d3.layout.force()
     .size([width, height])
     .charge(-120)
-    .linkDistance (l) -> Math.pow(1.0 - l.value, 1) * 100
-
-svg = d3.select('body').append('svg')
-    .attr('width', width)
-    .attr('height', height)
+    .linkDistance (l) -> (20+15) + (Math.pow(1.0 - l.value, 2) * 100)
 
 render = () ->
+  $('svg').remove()
+  svg = d3.select('body').append('svg')
+      .attr('width', width)
+      .attr('height', height)
   console.log 'rendering'
+  now = Date.now()
   graph = {nodes: TabInfo.db().get(), links: []}
   _.each graph.nodes, (node1, index1) ->
     _.each graph.nodes, (node2, index2) ->
@@ -60,7 +61,15 @@ render = () ->
         .data(graph.nodes)
         .enter().append('circle')
         .attr('class', 'node')
-        .attr('r', 5)
+        .attr('r', (d) ->
+          if d.closed
+            factor = 5
+            age = (now - d.time)/1000/60/factor
+            age = Math.max(1, age)
+            15/age
+          else
+            20
+        )
         .style('fill', (d) ->
           if d.closed
             'LightBlue'
@@ -80,8 +89,18 @@ render = () ->
 
     node.attr('cx', (d) -> d.x)
         .attr('cy', (d) -> d.y)
+        .attr('r', (d) ->
+          if d.closed
+            factor = 5
+            age = (now - d.time)/1000/60/factor
+            age = Math.max(1, age)
+            15/age
+          else
+            20
+        )
   )
 
 
-$('.render').click render
+TabInfo.updateFunction(render)
+ContentInfo.updateFunction(render)
 
