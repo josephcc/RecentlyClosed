@@ -20,7 +20,7 @@
     "default_icon": "dist/img/structify_medium.png"
   },
   "chrome_url_overrides" : {
-	  "newtab": "dist/html/interface.html"
+	  "history": "dist/html/interface.html"
   },
   "icons": {
     "16": "dist/img/structify_small.png",

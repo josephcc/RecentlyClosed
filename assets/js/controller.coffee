@@ -1,12 +1,18 @@
-w = window
-d = document
-e = d.documentElement
-g = d.getElementsByTagName('body')[0]
-width = w.innerWidth || e.clientWidth || g.clientWidth
-height = w.innerHeight|| e.clientHeight|| g.clientHeight
 
-width = width - 10
-height = height - 10
+width = null
+height = null
+force = null
+
+getSize = () ->
+  w = window
+  d = document
+  e = d.documentElement
+  g = d.getElementsByTagName('body')[0]
+  width = w.innerWidth || e.clientWidth || g.clientWidth
+  height = w.innerHeight|| e.clientHeight|| g.clientHeight
+  width = width - 10
+  height = height - 10
+  return [width, height]
 
 dot = (v1, v2) ->
   v = _.map _.zip(v1, v2), (xy) -> xy[0] * xy[1]
@@ -27,16 +33,12 @@ scale = (v, factor) ->
 stack = (v1, v2) ->
   v = _.map _.zip(v1, v2), (xy) -> xy[0] + xy[1]
 
-force = d3.layout.force()
-    .size([width, height])
-    .charge(-120)
-    .linkDistance (l) -> (20*12) + (Math.pow(1.0 - l.value, 2) * 300)
-
 graph = {nodes: [], links: []}
 render = () ->
   _.each graph.nodes, (node) ->
     TabInfo.db({url: node.url}).update({px: node.px, py: node.py, x: node.x, y: node.y}, false)
   $('svg').remove()
+
   svg = d3.select('body').append('svg')
       .attr('width', width)
       .attr('height', height)
@@ -99,7 +101,7 @@ render = () ->
   text = text.data(graph.nodes)
   text.enter().append("text")
         .attr("class", "label")
-        .attr("fill", 'darkgray')
+        .attr("fill", 'lightgray')
         .text((d) -> d.title.substring(0, 20))
 
   distanceToMouse = (d) ->
@@ -124,7 +126,7 @@ render = () ->
       age = 15/age
       age = Math.max(3, age)
       age = Math.min(19, age)
-      mouseZoom(d, 150, 50, age, 20)
+      mouseZoom(d, 200, 20, age, 20)
     else
       20
 
@@ -148,9 +150,11 @@ render = () ->
     )
       .attr('width', (d) -> 
         nodeForR(d)
+		  #Math.max(8, nodeForR(d))
       )
       .attr('height', (d) -> 
         nodeForR(d)
+		  #Math.max(8, nodeForR(d))
       )
 
     text.attr("transform", (d) ->
@@ -177,21 +181,29 @@ render = () ->
      tick()
   )
 
-chrome.tabs.query {windowType: 'normal'}, (tabs) ->
-  openedUrls = []
-  for tab in tabs
-    openedUrls.push tab.url
-    TabInfo.db({url: tab.url}).update({closed: false})
-  console.log 'openedUrls'
-  console.log openedUrls
-  opened = TabInfo.db({closed: false}).get()
-  console.log 'openedtabs'
-  console.log opened
-  _.each opened, (info) ->
-    if not _.contains openedUrls, info.url
-      TabInfo.db(info).update({closed: true, time: Date.now()})
-  TabInfo.updateFunction(render)
-  ContentInfo.updateFunction(render)
-  render()
+$(window).load () ->
 
-$('body').css('background', '#1a1a1a')
+  [width, height] = getSize()
+  force = d3.layout.force()
+    .size([width, height])
+    .charge(-120)
+    .linkDistance (l) -> (20*12) + (Math.pow(1.0 - l.value, 2) * 300)
+  
+  chrome.tabs.query {windowType: 'normal'}, (tabs) ->
+    openedUrls = []
+    for tab in tabs
+      openedUrls.push tab.url
+      TabInfo.db({url: tab.url}).update({closed: false})
+    console.log 'openedUrls'
+    console.log openedUrls
+    opened = TabInfo.db({closed: false}).get()
+    console.log 'openedtabs'
+    console.log opened
+    _.each opened, (info) ->
+      if not _.contains openedUrls, info.url
+        TabInfo.db(info).update({closed: true, time: Date.now()})
+    TabInfo.updateFunction(render)
+    ContentInfo.updateFunction(render)
+    render()
+  
+  $('body').css('background', '#1f1f1f')
