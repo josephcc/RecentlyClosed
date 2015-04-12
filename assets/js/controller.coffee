@@ -53,7 +53,9 @@ render = () ->
         if content1 and content2
           similarity = cosine(content1.topic_vector, content2.topic_vector)
         else
-          similarity = 0.5
+          similarity = 0.0
+        if similarity <= 0.1
+          similarity = 0.0
         graph.links.push {source: index1, target: index2, value: similarity}
 
   force
@@ -67,6 +69,15 @@ render = () ->
         .attr('class', 'link')
         .style('stroke-width', (d) -> 10 + d.value * 5)
 
+  focusNode = (d) ->
+    if d.closed
+      window.open(d.url, '_blank')
+    else
+      chrome.tabs.get(d.tab, (tab) ->
+        chrome.windows.update(tab.windowId, {focused: true})
+        chrome.tabs.update(d.tab, {selected: true})
+      )
+
   node = svg.selectAll('.node')
         .data(graph.nodes)
         .enter().append('circle')
@@ -75,19 +86,11 @@ render = () ->
         .style('cursor', 'pointer')
         .style('fill', (d) ->
           if d.closed
-            'LightBlue'
+            'SlateGray'
           else
-            'RoyalBlue'
+            'DeepSkyBlue'
         )
-        .on('click', (d) ->
-          if d.closed
-            window.open(d.url, '_blank')
-          else
-            chrome.tabs.get(d.tab, (tab) ->
-              chrome.windows.update(tab.windowId, {focused: true})
-              chrome.tabs.update(d.tab, {selected: true})
-            )
-        )
+        .on('click', focusNode)
   node.append('title')
       .text((d) -> d.url)
 
@@ -96,6 +99,8 @@ render = () ->
   image.enter().append("svg:image")
         .attr("class", "favicon")
         .attr("xlink:href",(d) -> 'chrome://favicon/' + d.url)
+        .on('click', focusNode)
+        .style('cursor', 'pointer')
 
   text = svg.selectAll("text.label")
   text = text.data(graph.nodes)
@@ -150,11 +155,11 @@ render = () ->
     )
       .attr('width', (d) -> 
         nodeForR(d)
-		  #Math.max(8, nodeForR(d))
+          #Math.max(8, nodeForR(d))
       )
       .attr('height', (d) -> 
         nodeForR(d)
-		  #Math.max(8, nodeForR(d))
+          #Math.max(8, nodeForR(d))
       )
 
     text.attr("transform", (d) ->
@@ -186,7 +191,7 @@ $(window).load () ->
   [width, height] = getSize()
   force = d3.layout.force()
     .size([width, height])
-    .charge(-120)
+    .friction(0.0)
     .linkDistance (l) -> (20*12) + (Math.pow(1.0 - l.value, 2) * 300)
   
   chrome.tabs.query {windowType: 'normal'}, (tabs) ->
