@@ -25,7 +25,7 @@ stack = (v1, v2) ->
 force = d3.layout.force()
     .size([width, height])
     .charge(-120)
-    .linkDistance (l) -> (20*3) + (Math.pow(1.0 - l.value, 2) * 300)
+    .linkDistance (l) -> (20*10) + (Math.pow(1.0 - l.value, 2) * 300)
 
 graph = {nodes: [], links: []}
 render = () ->
@@ -65,13 +65,23 @@ render = () ->
         .enter().append('circle')
         .attr('class', 'node')
         .attr('r', nodeForR)
+        .style('cursor', 'pointer')
         .style('fill', (d) ->
           if d.closed
             'LightBlue'
           else
             'RoyalBlue'
         )
-        .call(force.drag)
+        .on('click', (d) ->
+          if d.closed
+            window.open(d.url, '_blank')
+          else
+            chrome.tabs.get(d.tab, (tab) ->
+              console.log tab
+              chrome.windows.update(tab.windowId, {focused: true})
+              chrome.tabs.update(d.tab, {selected: true})
+            )
+        )
   node.append('title')
       .text((d) -> d.url)
 
@@ -80,7 +90,7 @@ render = () ->
   text.enter().append("text")
         .attr("class", "label")
         .attr("fill", 'darkgray')
-        .text((d) -> d.title)
+        .text((d) -> d.title.substring(0, 20))
 
 
   nodeForR = (d) ->
@@ -104,7 +114,12 @@ render = () ->
 
     text.attr("transform", (d) ->
       r = nodeForR(d)
-      "translate(" + (d.x + r + 2) + "," + (d.y + 3) + ")"
+      h = Math.min(r, 12)
+      "translate(" + (d.x + r + 2) + "," + (d.y + (r/2) - (h/2)) + ")"
+    )
+    .style('font-size', (d) ->
+      r = nodeForR(d)
+      Math.min(r, 12)
     )
   )
 
