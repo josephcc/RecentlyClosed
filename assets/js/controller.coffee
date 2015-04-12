@@ -164,5 +164,6 @@ chrome.tabs.query {windowType: 'normal'}, (tabs) ->
     if not _.contains openedUrls, info.url
       TabInfo.db(info).update({closed: true, time: Date.now()})
   TabInfo.updateFunction(render)
-  #ContentInfo.updateFunction(render)
+  ContentInfo.updateFunction(render)
+  render()
 

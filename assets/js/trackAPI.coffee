@@ -43,16 +43,19 @@ window.TabInfo = (() ->
       if !changes.tabs.newValue?
         obj.db = TAFFY()
         obj.db.settings(settings)
+        console.log 'a'
         updateFunction() if updateFunction?
-      else if changes.tabs.newValue.updateid != updateID
+      else if changes.tabs.newValue.updateId != updateID
         obj.db = TAFFY(changes.tabs.newValue.db, false)
         obj.db.settings(settings)
+        console.log 'b'
         updateFunction() if updateFunction?
 
   chrome.storage.local.get 'tabs', (retVal) ->
     if retVal.tabs?
       obj.db = TAFFY(retVal.tabs.db)
     obj.db.settings(settings)
+    console.log 'c'
     updateFunction() if updateFunction?
 
   obj.clearDB = () ->
@@ -102,7 +105,7 @@ window.ContentInfo = (() ->
         obj.db = TAFFY()
         obj.db.settings(settings)
         updateFunction() if updateFunction?
-      else if changes.contents.newValue.updateid != updateID
+      else if changes.contents.newValue.updateId != updateID
         obj.db = TAFFY(changes.contents.newValue.db, false)
         obj.db.settings(settings)
         updateFunction() if updateFunction?
