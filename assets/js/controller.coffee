@@ -86,13 +86,18 @@ render = () ->
   node.append('title')
       .text((d) -> d.url)
 
+  image = svg.selectAll("image.favicon")
+  image = image.data(graph.nodes)
+  image.enter().append("svg:image")
+        .attr("class", "favicon")
+        .attr("xlink:href",(d) -> 'chrome://favicon/' + d.url)
+
   text = svg.selectAll("text.label")
   text = text.data(graph.nodes)
   text.enter().append("text")
         .attr("class", "label")
         .attr("fill", 'darkgray')
         .text((d) -> d.title.substring(0, 20))
-
 
   distanceToMouse = (d) ->
     Math.pow(Math.pow(mouse.x - d.x, 2) + Math.pow(mouse.y - d.y, 2), 0.5)
@@ -113,7 +118,6 @@ render = () ->
     else
       20
 
-
   mouse = {x: 0, y: 0}
   tick = () ->
 
@@ -126,6 +130,19 @@ render = () ->
         .attr('cy', (d) -> d.y)
         .attr('r', nodeForR)
 
+
+    image.attr("transform", (d) ->
+      r = nodeForR(d)
+      h = Math.min(r, 12)
+      "translate(" + (d.x) + "," + (d.y) + ")"
+    )
+      .attr('width', (d) -> 
+        return  nodeForR(d)
+      )
+      .attr('height', (d) -> 
+        r = nodeForR(d)
+      )
+
     text.attr("transform", (d) ->
       r = nodeForR(d)
       h = Math.min(r, 12)
@@ -137,10 +154,10 @@ render = () ->
     )
     .text((d) -> 
       r = nodeForR(d)
-      if distanceToMouse(d) <= r * 2
+      if distanceToMouse(d) <= 150/3 or not d.closed
         d.title
       else
-        d.title.substring(0, 20)
+        ""
     )
 
   force.on('tick', tick)

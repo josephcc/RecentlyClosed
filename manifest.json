@@ -9,7 +9,8 @@
     "activeTab",
 	"storage",
 	"http://*/",
-	"https://*/"
+	"https://*/",
+    "chrome://favicon/"
   ],
   "background": {
     "page": "dist/html/background.html",
