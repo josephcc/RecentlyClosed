@@ -17,34 +17,11 @@ html(lang='en')
   body
     .container
       .jumbotron
-        .row(style='display: flex; align-items: center;')
-          .col-sm-4
-            image(src='/dist/img/tabtacular.png', style='width: 100%;')
-          .col-sm-8
-            h1
-              | Tab Tracker
-        br
-        p
-          | Thank you for participating in the browser tab usage study. Please
-          | click the first two buttons to download your tab usage logs from
-          | this Chrome extension. Before submitting the logs, you can review
-          | them in Excel and blackout columns that you do not wish to share
-          | with us. Please send your logs to josephcc@cmu.edu . Thank you!
-        br
         p
           .row.text-center
             .col-sm-4
-              button.download.all.btn.btn-lg.btn-success(type='button')
-                | Download your logs
-            .col-sm-4
               button.btn.btn-lg.render.btn-info(type='button')
                 | Visualize your logs
-            .col-sm-4
-              button.database.kill.btn.btn-lg.btn-danger(type='button')
-                | Clear database
-      .row
-        .col-sm-12
-          .render_container(style='width: 100%; overflow: scroll;')
 
       // Placed at the end of the document so the pages load faster
       script(src='/dist/js/uuid.js')
