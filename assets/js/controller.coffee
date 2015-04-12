@@ -5,6 +5,9 @@ g = d.getElementsByTagName('body')[0]
 width = w.innerWidth || e.clientWidth || g.clientWidth
 height = w.innerHeight|| e.clientHeight|| g.clientHeight
 
+width = width - 10
+height = height - 10
+
 dot = (v1, v2) ->
   v = _.map _.zip(v1, v2), (xy) -> xy[0] * xy[1]
   v = _.reduce v, (x, y) -> x + y
@@ -27,7 +30,7 @@ stack = (v1, v2) ->
 force = d3.layout.force()
     .size([width, height])
     .charge(-120)
-    .linkDistance (l) -> (20*10) + (Math.pow(1.0 - l.value, 2) * 300)
+    .linkDistance (l) -> (20*12) + (Math.pow(1.0 - l.value, 2) * 300)
 
 graph = {nodes: [], links: []}
 render = () ->
@@ -102,19 +105,26 @@ render = () ->
   distanceToMouse = (d) ->
     Math.pow(Math.pow(mouse.x - d.x, 2) + Math.pow(mouse.y - d.y, 2), 0.5)
 
-  mouseZoom = (d, r, f) ->
-    distance = distanceToMouse({x: d.x, y: d.y})
-    if distance >= r
-      return 1.0
-    return 1 + (Math.pow(Math.pow(r, 2) - Math.pow(distance,2), 0.5)*(f-1)/r)
+  mouseZoom = (node, d1, d2, r, R) ->
+    distance = distanceToMouse({x: node.x, y: node.y}) 
+    x = distance - d2
+    dd = d1 - d2
+    dr = R - r
+    if distance >= d1
+      return r
+    if distance <= d2
+      return R
+    return r + (dr * Math.pow( 1 - (x*x/(dd*dd)), 0.5))
 
 
   nodeForR = (d) ->
     if d.closed
       factor = 25
       age = (now - d.time)/1000/60/factor
-      age = Math.max(1, age)
-      Math.min(20, mouseZoom(d, 100, 100/15) * 15/age)
+      age = 15/age
+      age = Math.max(3, age)
+      age = Math.min(19, age)
+      mouseZoom(d, 150, 50, age, 20)
     else
       20
 
@@ -134,13 +144,13 @@ render = () ->
     image.attr("transform", (d) ->
       r = nodeForR(d)
       h = Math.min(r, 12)
-      "translate(" + (d.x) + "," + (d.y) + ")"
+      "translate(" + (d.x - 1) + "," + (d.y - 1) + ")"
     )
       .attr('width', (d) -> 
-        return  nodeForR(d)
+        nodeForR(d)
       )
       .attr('height', (d) -> 
-        r = nodeForR(d)
+        nodeForR(d)
       )
 
     text.attr("transform", (d) ->
@@ -184,3 +194,4 @@ chrome.tabs.query {windowType: 'normal'}, (tabs) ->
   ContentInfo.updateFunction(render)
   render()
 
+$('body').css('background', '#1a1a1a')
