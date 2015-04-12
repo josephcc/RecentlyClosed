@@ -93,16 +93,29 @@ render = () ->
         .text((d) -> d.title.substring(0, 20))
 
 
+  distanceToMouse = (d) ->
+    Math.pow(Math.pow(mouse.x - d.x, 2) + Math.pow(mouse.y - d.y, 2), 0.5)
+
+  mouseZoom = (d, r, f) ->
+    distance = distanceToMouse({x: d.x, y: d.y})
+    if distance >= r
+      return 1.0
+    return 1 + (Math.pow(Math.pow(r, 2) - Math.pow(distance,2), 0.5)*(f-1)/r)
+
+
   nodeForR = (d) ->
     if d.closed
-      factor = 5
+      factor = 25
       age = (now - d.time)/1000/60/factor
       age = Math.max(1, age)
-      15/age
+      Math.min(20, mouseZoom(d, 100, 100/15) * 15/age)
     else
       20
 
-  force.on('tick', () ->
+
+  mouse = {x: 0, y: 0}
+  tick = () ->
+
     link.attr('x1', (d) -> d.source.x)
         .attr('y1', (d) -> d.source.y)
         .attr('x2', (d) -> d.target.x)
@@ -115,12 +128,25 @@ render = () ->
     text.attr("transform", (d) ->
       r = nodeForR(d)
       h = Math.min(r, 12)
-      "translate(" + (d.x + r + 2) + "," + (d.y + (r/2) - (h/2)) + ")"
+      "translate(" + (d.x + r + 2) + "," + (d.y + (r/2) - (h/3)) + ")"
     )
     .style('font-size', (d) ->
       r = nodeForR(d)
       Math.min(r, 12)
     )
+    .text((d) -> 
+      r = nodeForR(d)
+      if distanceToMouse(d) <= r * 2
+        d.title
+      else
+        d.title.substring(0, 20)
+    )
+
+  force.on('tick', tick)
+  svg.on('mousemove', () ->
+     mouse.x = d3.mouse(this)[0]
+     mouse.y = d3.mouse(this)[1]
+     tick()
   )
 
 
