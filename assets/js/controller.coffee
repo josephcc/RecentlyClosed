@@ -34,14 +34,13 @@ stack = (v1, v2) ->
   v = _.map _.zip(v1, v2), (xy) -> xy[0] + xy[1]
 
 graph = {nodes: [], links: []}
+svg = d3.select('body').append('svg')
+    .attr('width', width)
+    .attr('height', height)
+
 render = () ->
   _.each graph.nodes, (node) ->
     TabInfo.db({url: node.url}).update({px: node.px, py: node.py, x: node.x, y: node.y}, false)
-  $('svg').remove()
-
-  svg = d3.select('body').append('svg')
-      .attr('width', width)
-      .attr('height', height)
   console.log 'rendering'
   now = Date.now()
   graph = {nodes: TabInfo.db().get(), links: []}
@@ -54,8 +53,6 @@ render = () ->
           similarity = cosine(content1.topic_vector, content2.topic_vector)
         else
           similarity = 0.0
-        if similarity <= 0.1
-          similarity = 0.0
         graph.links.push {source: index1, target: index2, value: similarity}
 
   force
@@ -65,7 +62,7 @@ render = () ->
 
   link = svg.selectAll('.link')
         .data(graph.links)
-        .enter().append('line')
+  link.enter().append('line')
         .attr('class', 'link')
         .style('stroke-width', (d) -> 10 + d.value * 5)
 
@@ -80,16 +77,9 @@ render = () ->
 
   node = svg.selectAll('.node')
         .data(graph.nodes)
-        .enter().append('circle')
+  node.enter().append('circle')
         .attr('class', 'node')
-        .attr('r', nodeForR)
         .style('cursor', 'pointer')
-        .style('fill', (d) ->
-          if d.closed
-            'SlateGray'
-          else
-            'DeepSkyBlue'
-        )
         .on('click', focusNode)
   node.append('title')
       .text((d) -> d.url)
@@ -98,7 +88,6 @@ render = () ->
   image = image.data(graph.nodes)
   image.enter().append("svg:image")
         .attr("class", "favicon")
-        .attr("xlink:href",(d) -> 'chrome://favicon/' + d.url)
         .on('click', focusNode)
         .style('cursor', 'pointer')
 
@@ -107,7 +96,11 @@ render = () ->
   text.enter().append("text")
         .attr("class", "label")
         .attr("fill", 'lightgray')
-        .text((d) -> d.title.substring(0, 20))
+
+  node.exit().remove()
+  link.exit().remove()
+  image.exit().remove()
+  text.exit().remove()
 
   distanceToMouse = (d) ->
     Math.pow(Math.pow(mouse.x - d.x, 2) + Math.pow(mouse.y - d.y, 2), 0.5)
@@ -131,7 +124,7 @@ render = () ->
       age = 15/age
       age = Math.max(3, age)
       age = Math.min(19, age)
-      mouseZoom(d, 200, 20, age, 20)
+      mouseZoom(d, 175, 15, age, 20)
     else
       20
 
@@ -146,6 +139,12 @@ render = () ->
     node.attr('cx', (d) -> d.x)
         .attr('cy', (d) -> d.y)
         .attr('r', nodeForR)
+        .style('fill', (d) ->
+          if d.closed
+            'SlateGray'
+          else
+            'DeepSkyBlue'
+        )
 
 
     image.attr("transform", (d) ->
@@ -153,6 +152,7 @@ render = () ->
       h = Math.min(r, 12)
       "translate(" + (d.x - 1) + "," + (d.y - 1) + ")"
     )
+      .attr("xlink:href",(d) -> 'chrome://favicon/' + d.url)
       .attr('width', (d) -> 
         nodeForR(d)
           #Math.max(8, nodeForR(d))
@@ -173,13 +173,18 @@ render = () ->
     )
     .text((d) -> 
       r = nodeForR(d)
-      if distanceToMouse(d) <= 150/3 or not d.closed
+      if distanceToMouse(d) <= 150/2.5
         d.title
+      else if not d.closed
+        d.title.substring(0, 20)
       else
         ""
     )
 
+
   force.on('tick', tick)
+  while force.alpha() > 0.07
+    force.tick()
   svg.on('mousemove', () ->
      mouse.x = d3.mouse(this)[0]
      mouse.y = d3.mouse(this)[1]
@@ -189,6 +194,9 @@ render = () ->
 $(window).load () ->
 
   [width, height] = getSize()
+  svg
+    .attr('width', width)
+    .attr('height', height)
   force = d3.layout.force()
     .size([width, height])
     .friction(0.0)
@@ -209,6 +217,5 @@ $(window).load () ->
         TabInfo.db(info).update({closed: true, time: Date.now()})
     TabInfo.updateFunction(render)
     ContentInfo.updateFunction(render)
-    render()
   
   $('body').css('background', '#1f1f1f')
