@@ -52,7 +52,7 @@ render = () ->
         if content1 and content2
           similarity = cosine(content1.topic_vector, content2.topic_vector)
         else
-          similarity = 0.0
+          similarity = 0.5
         graph.links.push {source: index1, target: index2, value: similarity}
 
   force
@@ -119,14 +119,14 @@ render = () ->
 
   nodeForR = (d) ->
     if d.closed
-      factor = 25
+      factor = 1000
       age = (now - d.time)/1000/60/factor
-      age = 15/age
-      age = Math.max(3, age)
+      age = Math.max(5, (1/age))
       age = Math.min(19, age)
       mouseZoom(d, 175, 15, age, 20)
     else
       20
+      mouseZoom(d, 175, 15, 20, 23)
 
   mouse = {x: 0, y: 0}
   tick = () ->
@@ -200,7 +200,7 @@ $(window).load () ->
   force = d3.layout.force()
     .size([width, height])
     .friction(0.0)
-    .linkDistance (l) -> (20*12) + (Math.pow(1.0 - l.value, 2) * 300)
+    .linkDistance (l) -> (20*11) + (Math.pow(1.0 - l.value, 1) * 500)
   
   chrome.tabs.query {windowType: 'normal'}, (tabs) ->
     openedUrls = []

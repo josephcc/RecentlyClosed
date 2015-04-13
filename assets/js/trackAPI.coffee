@@ -5,8 +5,8 @@
 ###
 
 
-DB_SIZE = 100
-DB_LIMIT = 150
+DB_SIZE = 50
+DB_LIMIT = 75
 
 tabInfoThrottle = null
 window.TabInfo = (() ->
